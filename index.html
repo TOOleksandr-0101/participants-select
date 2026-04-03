@@ -1,146 +1,413 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>ParticipantsSelect</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ParticipantsSelect</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg2: #0b1728;
+      --card: rgba(14, 24, 42, 0.92);
+      --border: rgba(80, 112, 168, 0.22);
+      --text: #e8eefc;
+      --muted: #91a0bf;
+      --blue: #3b82f6;
+      --blueHover: #2563eb;
+      --gray: #334155;
+      --grayHover: #475569;
+      --danger: #ef4444;
+      --dangerHover: #dc2626;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      --radius: 18px;
+    }
 
-<style>
-body {
-  font-family: system-ui;
-  background:#0b1220;
-  color:white;
-  margin:0;
-  padding:30px;
-}
+    * { box-sizing: border-box; }
 
-.container {
-  max-width:900px;
-  margin:auto;
-}
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 35%),
+        radial-gradient(circle at top right, rgba(59,130,246,0.1), transparent 25%),
+        linear-gradient(180deg, #06101d 0%, #081120 100%);
+      min-height: 100vh;
+    }
 
-.card {
-  background:#111827;
-  padding:20px;
-  border-radius:14px;
-  margin-bottom:20px;
-}
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
 
-button {
-  padding:8px 12px;
-  margin:4px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  background:#2563eb;
-  color:white;
-}
+    h1 {
+      font-size: 56px;
+      line-height: 1;
+      margin: 0 0 22px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
 
-input {
-  padding:10px;
-  margin:5px;
-  border-radius:8px;
-  border:none;
-}
+    .hero {
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      margin-bottom: 26px;
+    }
 
-</style>
+    .card {
+      background: linear-gradient(180deg, rgba(15, 26, 46, 0.94), rgba(9, 18, 33, 0.96));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
 
+    .create-card {
+      padding: 20px;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    input, select {
+      background: #040b16;
+      border: 1px solid rgba(94, 122, 176, 0.28);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 16px;
+      outline: none;
+      min-height: 48px;
+    }
+
+    input::placeholder { color: #6e7fa3; }
+
+    input:focus, select:focus {
+      border-color: rgba(59,130,246,0.8);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.16);
+    }
+
+    #queueName {
+      min-width: 260px;
+      flex: 1 1 320px;
+    }
+
+    #queueMode {
+      width: 160px;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      min-height: 46px;
+      cursor: pointer;
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      transition: 0.18s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    .btn-primary { background: var(--blue); }
+    .btn-primary:hover { background: var(--blueHover); }
+
+    .btn-secondary { background: var(--gray); }
+    .btn-secondary:hover { background: var(--grayHover); }
+
+    .section {
+      margin-top: 34px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .section h2 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: -0.02em;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .list {
+      display: grid;
+      gap: 16px;
+    }
+
+    .queue-card {
+      padding: 20px;
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .queue-main {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .queue-title {
+      margin: 0 0 10px;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      word-break: break-word;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(94,122,176,0.22);
+      background: rgba(255,255,255,0.03);
+      border-radius: 999px;
+      padding: 6px 10px;
+      color: #b8c4df;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .queue-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .empty {
+      padding: 22px;
+      color: var(--muted);
+      border: 1px dashed rgba(94,122,176,0.25);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    a.hidden-link {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    @media (max-width: 760px) {
+      h1 { font-size: 40px; }
+      .queue-card {
+        flex-direction: column;
+      }
+      .queue-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      #queueMode {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
-
 <body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>ParticipantsSelect</h1>
 
-<div class="container">
+      <div class="card create-card">
+        <div class="row">
+          <input id="queueName" type="text" placeholder="Queue name" />
+          <select id="queueMode">
+            <option value="group">Group</option>
+            <option value="solo">Solo</option>
+          </select>
+          <button class="btn-primary" onclick="createQueue()">Create queue</button>
+        </div>
+      </div>
+    </div>
 
-<h1>ParticipantsSelect</h1>
+    <section class="section">
+      <div class="section-head">
+        <h2>Pinned</h2>
+        <div class="muted"></div>
+      </div>
+      <div id="pinnedList" class="list"></div>
+    </section>
 
-<div class="card">
-  <input id="name" placeholder="Queue name">
-  <select id="mode">
-    <option value="group">Group</option>
-    <option value="solo">Solo</option>
-  </select>
-  <button onclick="createQueue()">Create</button>
-</div>
+    <section class="section">
+      <div class="section-head">
+        <h2>All queues</h2>
+        <div class="muted"></div>
+      </div>
+      <div id="queueList" class="list"></div>
+    </section>
+  </div>
 
-<h2>Pinned</h2>
-<div id="pinned"></div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      push,
+      set,
+      onValue,
+      update
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-<h2>All queues</h2>
-<div id="list"></div>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDfuH5iHjtiaB4bd5Z0YVzKFM0U4hQsO-w",
+      authDomain: "partisel.firebaseapp.com",
+      databaseURL: "https://partisel-default-rtdb.europe-west1.firebasedatabase.app/",
+      projectId: "partisel",
+      storageBucket: "partisel.firebasestorage.app",
+      messagingSenderId: "413106966990",
+      appId: "1:413106966990:web:5699fe9b8f34b802d29b9f"
+    };
 
-</div>
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, push, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    function countParticipants(queue) {
+      return queue.participants ? Object.keys(queue.participants).length : 0;
+    }
 
-const app = initializeApp({
-  apiKey: "AIzaSyDfuH5iHjtiaB4bd5Z0YVzKFM0U4hQsO-w",
-  databaseURL: "https://partisel-default-rtdb.europe-west1.firebasedatabase.app/",
-  projectId: "partisel"
-});
+    window.createQueue = async function () {
+      const nameInput = document.getElementById("queueName");
+      const mode = document.getElementById("queueMode").value;
+      const name = nameInput.value.trim();
 
-const db = getDatabase(app);
+      if (!name) {
+        alert("Enter queue name");
+        return;
+      }
 
-// CREATE
-window.createQueue = async () => {
-  const name = document.getElementById("name").value;
-  const mode = document.getElementById("mode").value;
+      const newRef = push(ref(db, "queues"));
+      await set(newRef, {
+        name,
+        mode,
+        pinned: false,
+        createdAt: Date.now()
+      });
 
-  if (!name) return alert("enter name");
+      nameInput.value = "";
+    };
 
-  const q = push(ref(db, "queues"));
+    window.togglePin = async function (id, currentPinned) {
+      await update(ref(db, "queues/" + id), {
+        pinned: !currentPinned
+      });
+    };
 
-  await set(q, {
-    name,
-    mode,
-    pinned:false,
-    createdAt: Date.now()
-  });
-};
+    window.openQueue = function (id) {
+      window.location.href = "queue.html?id=" + encodeURIComponent(id);
+    };
 
-// PIN
-window.togglePin = async (id, current) => {
-  await update(ref(db, "queues/"+id), {
-    pinned: !current
-  });
-};
+    function renderQueueCard(id, queue) {
+      const div = document.createElement("div");
+      div.className = "card queue-card";
 
-// OPEN
-window.openQueue = id => {
-  location.href = "queue.html?id="+id;
-};
+      const main = document.createElement("div");
+      main.className = "queue-main";
 
-// RENDER
-onValue(ref(db,"queues"), snap=>{
-  const data = snap.val() || {};
+      const title = document.createElement("h3");
+      title.className = "queue-title";
+      title.textContent = queue.name;
 
-  const pinned = document.getElementById("pinned");
-  const list = document.getElementById("list");
+      const meta = document.createElement("div");
+      meta.className = "meta";
 
-  pinned.innerHTML = "";
-  list.innerHTML = "";
+      const typeBadge = document.createElement("div");
+      typeBadge.className = "badge";
+      typeBadge.textContent = queue.mode === "solo" ? "Solo queue" : "Group queue";
 
-  for (const id in data) {
-    const q = data[id];
+      const countBadge = document.createElement("div");
+      countBadge.className = "badge";
+      countBadge.textContent = countParticipants(queue) + " participant" + (countParticipants(queue) === 1 ? "" : "s");
 
-    const div = document.createElement("div");
-    div.className="card";
+      meta.appendChild(typeBadge);
+      meta.appendChild(countBadge);
 
-    div.innerHTML = `
-      <b>${q.name}</b> (${q.mode})
-      <br>
-      <button onclick="openQueue('${id}')">Open</button>
-      <button onclick="togglePin('${id}', ${q.pinned})">
-        ${q.pinned ? "Unpin":"Pin"}
-      </button>
-    `;
+      main.appendChild(title);
+      main.appendChild(meta);
 
-    if (q.pinned) pinned.appendChild(div);
-    else list.appendChild(div);
-  }
-});
-</script>
+      const actions = document.createElement("div");
+      actions.className = "queue-actions";
 
+      const openBtn = document.createElement("button");
+      openBtn.className = "btn-primary";
+      openBtn.textContent = "Open";
+      openBtn.onclick = () => openQueue(id);
+
+      const pinBtn = document.createElement("button");
+      pinBtn.className = "btn-secondary";
+      pinBtn.textContent = queue.pinned ? "Unpin" : "Pin";
+      pinBtn.onclick = () => togglePin(id, !!queue.pinned);
+
+      actions.appendChild(openBtn);
+      actions.appendChild(pinBtn);
+
+      div.appendChild(main);
+      div.appendChild(actions);
+
+      return div;
+    }
+
+    function renderEmpty(target, text) {
+      const div = document.createElement("div");
+      div.className = "empty";
+      div.textContent = text;
+      target.appendChild(div);
+    }
+
+    onValue(ref(db, "queues"), (snapshot) => {
+      const pinnedList = document.getElementById("pinnedList");
+      const queueList = document.getElementById("queueList");
+
+      pinnedList.innerHTML = "";
+      queueList.innerHTML = "";
+
+      const data = snapshot.val();
+      if (!data) {
+        renderEmpty(pinnedList, "No pinned queues yet");
+        renderEmpty(queueList, "No queues yet");
+        return;
+      }
+
+      const items = Object.entries(data).sort((a, b) => {
+        const aTime = a[1].createdAt || 0;
+        const bTime = b[1].createdAt || 0;
+        return bTime - aTime;
+      });
+
+      const pinned = items.filter(([, q]) => q.pinned);
+      const normal = items.filter(([, q]) => !q.pinned);
+
+      if (pinned.length === 0) {
+        renderEmpty(pinnedList, "No pinned queues yet");
+      } else {
+        pinned.forEach(([id, q]) => pinnedList.appendChild(renderQueueCard(id, q)));
+      }
+
+      if (normal.length === 0) {
+        renderEmpty(queueList, "No queues yet");
+      } else {
+        normal.forEach(([id, q]) => queueList.appendChild(renderQueueCard(id, q)));
+      }
+    });
+  </script>
 </body>
 </html>
