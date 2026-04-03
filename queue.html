@@ -7,50 +7,97 @@
 
 <style>
 body {
-  font-family: system-ui;
-  background:#0b1220;
-  color:white;
   margin:0;
-  padding:20px;
+  font-family: system-ui;
+  background:
+    radial-gradient(circle at top left, rgba(59,130,246,0.2), transparent),
+    #060c18;
+  color:white;
 }
 
 .container {
   max-width:900px;
   margin:auto;
+  padding:30px;
 }
 
 .card {
-  background:#111827;
+  background: rgba(17,24,39,0.9);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:16px;
   padding:20px;
-  border-radius:14px;
   margin-bottom:20px;
+  backdrop-filter: blur(10px);
+}
+
+h1 {
+  margin:0 0 10px;
+  font-size:42px;
+}
+
+.badge {
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.05);
+  margin-right:6px;
+  font-size:13px;
+}
+
+button {
+  border:none;
+  border-radius:10px;
+  padding:10px 14px;
+  cursor:pointer;
+  color:white;
+  font-weight:600;
+}
+
+.blue { background:#3b82f6 }
+.green { background:#22c55e }
+.red { background:#ef4444 }
+.gray { background:#374151 }
+
+.group {
+  margin-top:15px;
 }
 
 .user {
   display:flex;
   justify-content:space-between;
-  padding:10px;
-  margin:5px 0;
-  background:#020617;
-  border-radius:8px;
+  align-items:center;
+  padding:14px;
+  border-radius:12px;
+  margin:8px 0;
+  background: rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06);
 }
 
-.me {
-  border:1px solid #2563eb;
+.user.me {
+  border:1px solid #3b82f6;
 }
 
-button {
-  padding:6px 10px;
-  margin:3px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  background:#2563eb;
-  color:white;
+.user-left {
+  display:flex;
+  gap:12px;
+  align-items:center;
 }
 
-.red { background:#dc2626 }
+.num {
+  width:30px;
+  height:30px;
+  border-radius:999px;
+  background:rgba(59,130,246,0.2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+}
 
+.footer {
+  opacity:0.6;
+  margin-top:40px;
+}
 </style>
 
 </head>
@@ -61,20 +108,24 @@ button {
 
 <a href="index.html">← Back</a>
 
-<h1 id="title"></h1>
-
 <div class="card">
-  <button onclick="login()">Login</button>
-  <button onclick="logout()">Logout</button>
+  <h1 id="title"></h1>
+  <div id="meta"></div>
 </div>
 
-<div class="card" id="controls"></div>
+<div class="card">
+  <button class="gray" onclick="login()">Login</button>
+  <button class="gray" onclick="logout()">Logout</button>
+  <button class="blue" onclick="copyLink()">Copy link</button>
+</div>
+
+<div id="controls"></div>
 <div id="content"></div>
 
-<div style="opacity:0.6;margin-top:40px">
-Made by oleksandr<br>
-Made by ChatGPT<br>
-contributors: susterok
+<div class="footer">
+  Made by oleksandr<br>
+  Made by ChatGPT<br>
+  contributors: susterok
 </div>
 
 </div>
@@ -103,7 +154,6 @@ let identity = JSON.parse(localStorage.getItem("identity") || "null");
 window.login = () => {
   const name = prompt("Name");
   const pin = prompt("PIN");
-
   if (!name || !pin) return;
 
   identity = {name, pin};
@@ -116,9 +166,15 @@ window.logout = () => {
   localStorage.removeItem("identity");
 };
 
+// COPY LINK
+window.copyLink = () => {
+  navigator.clipboard.writeText(location.href);
+  alert("copied");
+};
+
 // MOVE
 async function move(path, index, dir) {
-  if (!identity) return alert("login first");
+  if (!identity) return alert("login");
 
   const snap = await get(ref(db, path));
   const data = snap.val();
@@ -133,7 +189,7 @@ async function move(path, index, dir) {
   const [k2,v2] = items[next];
 
   if (v1.name!==identity.name || v1.pin!==identity.pin || v1.uid!==uid) {
-    alert("you can move only yourself");
+    alert("only yourself");
     return;
   }
 
@@ -141,9 +197,9 @@ async function move(path, index, dir) {
   await update(ref(db, path+"/"+k2), {createdAt:v1.createdAt});
 }
 
-// ADD
+// ADD SOLO
 window.add = async () => {
-  if (!identity) return alert("login first");
+  if (!identity) return alert("login");
 
   await push(ref(db, `queues/${id}/participants`), {
     ...identity,
@@ -154,15 +210,13 @@ window.add = async () => {
 
 // DELETE
 window.del = async () => {
-  if (!identity) return alert("login first");
+  if (!identity) return;
 
   const snap = await get(ref(db, `queues/${id}/participants`));
   const data = snap.val();
-  if (!data) return;
 
   for (const k in data) {
     const p = data[k];
-
     if (p.name===identity.name && p.pin===identity.pin && p.uid===uid) {
       await remove(ref(db, `queues/${id}/participants/${k}`));
     }
@@ -171,14 +225,14 @@ window.del = async () => {
 
 // GROUP
 window.createGroup = async () => {
-  const name = prompt("group name");
+  const name = prompt("Group name");
   if (!name) return;
 
   await update(ref(db, `queues/${id}/groups`), {[name]:true});
 };
 
-window.join = async (g) => {
-  if (!identity) return alert("login");
+window.join = async g => {
+  if (!identity) return;
 
   await push(ref(db, `queues/${id}/members/${g}`), {
     ...identity,
@@ -187,10 +241,9 @@ window.join = async (g) => {
   });
 };
 
-window.leave = async (g) => {
+window.leave = async g => {
   const snap = await get(ref(db, `queues/${id}/members/${g}`));
   const data = snap.val();
-  if (!data) return;
 
   for (const k in data) {
     const p = data[k];
@@ -207,6 +260,10 @@ onValue(ref(db, `queues/${id}`), snap=>{
 
   document.getElementById("title").innerText = q.name;
 
+  document.getElementById("meta").innerHTML = `
+    <span class="badge">${q.mode}</span>
+  `;
+
   const controls = document.getElementById("controls");
   const content = document.getElementById("content");
 
@@ -216,8 +273,10 @@ onValue(ref(db, `queues/${id}`), snap=>{
   // SOLO
   if (q.mode==="solo") {
     controls.innerHTML=`
-      <button onclick="add()">Add me</button>
-      <button class="red" onclick="del()">Delete me</button>
+      <div class="card">
+        <button class="blue" onclick="add()">Add me</button>
+        <button class="red" onclick="del()">Delete</button>
+      </div>
     `;
 
     const items = q.participants
@@ -231,10 +290,13 @@ onValue(ref(db, `queues/${id}`), snap=>{
       if (identity && p.name===identity.name) div.classList.add("me");
 
       div.innerHTML=`
-        <div>#${i+1} ${p.name}</div>
+        <div class="user-left">
+          <div class="num">${i+1}</div>
+          <div>${p.name}</div>
+        </div>
         <div>
-          <button onclick="move('queues/${id}/participants',${i},-1)">↑</button>
-          <button onclick="move('queues/${id}/participants',${i},1)">↓</button>
+          <button class="gray" onclick="move('queues/${id}/participants',${i},-1)">↑</button>
+          <button class="gray" onclick="move('queues/${id}/participants',${i},1)">↓</button>
         </div>
       `;
 
@@ -244,27 +306,33 @@ onValue(ref(db, `queues/${id}`), snap=>{
 
   // GROUP
   else {
-    controls.innerHTML=`<button onclick="createGroup()">Create group</button>`;
+    controls.innerHTML=`
+      <div class="card">
+        <button class="green" onclick="createGroup()">Create group</button>
+      </div>
+    `;
 
     const groups = q.groups || {};
     const members = q.members || {};
 
     for (const g in groups) {
-      const div = document.createElement("div");
-      div.className="card";
+      const card = document.createElement("div");
+      card.className="card";
 
-      div.innerHTML=`<h3>${g}</h3>`;
+      card.innerHTML = `<h3>${g}</h3>`;
 
       const joinBtn = document.createElement("button");
+      joinBtn.className="blue";
       joinBtn.innerText="Join";
       joinBtn.onclick=()=>join(g);
 
       const leaveBtn = document.createElement("button");
+      leaveBtn.className="red";
       leaveBtn.innerText="Leave";
       leaveBtn.onclick=()=>leave(g);
 
-      div.appendChild(joinBtn);
-      div.appendChild(leaveBtn);
+      card.appendChild(joinBtn);
+      card.appendChild(leaveBtn);
 
       const items = members[g]
         ? Object.entries(members[g]).sort((a,b)=>a[1].createdAt-b[1].createdAt)
@@ -277,750 +345,24 @@ onValue(ref(db, `queues/${id}`), snap=>{
         if (identity && p.name===identity.name) user.classList.add("me");
 
         user.innerHTML=`
-          <div>#${i+1} ${p.name}</div>
+          <div class="user-left">
+            <div class="num">${i+1}</div>
+            <div>${p.name}</div>
+          </div>
           <div>
-            <button onclick="move('queues/${id}/members/${g}',${i},-1)">↑</button>
-            <button onclick="move('queues/${id}/members/${g}',${i},1)">↓</button>
+            <button class="gray" onclick="move('queues/${id}/members/${g}',${i},-1)">↑</button>
+            <button class="gray" onclick="move('queues/${id}/members/${g}',${i},1)">↓</button>
           </div>
         `;
 
-        div.appendChild(user);
+        card.appendChild(user);
       });
 
-      content.appendChild(div);
+      content.appendChild(card);
     }
   }
 });
 </script>
 
-</body>
-</html>
-    .wrap {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 32px 20px 80px;
-    }
-
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      align-items: center;
-      margin-bottom: 22px;
-      flex-wrap: wrap;
-    }
-
-    .back {
-      color: #b7c5e3;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    .back:hover { color: white; }
-
-    .card {
-      background: linear-gradient(180deg, rgba(15, 26, 46, 0.94), rgba(9, 18, 33, 0.96));
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-    }
-
-    .head-card {
-      padding: 24px;
-      margin-bottom: 20px;
-    }
-
-    h1 {
-      margin: 0 0 12px;
-      font-size: 42px;
-      line-height: 1;
-      letter-spacing: -0.03em;
-    }
-
-    .meta {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      border: 1px solid rgba(94,122,176,0.22);
-      background: rgba(255,255,255,0.03);
-      border-radius: 999px;
-      padding: 6px 10px;
-      color: #b8c4df;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .actions-card {
-      padding: 18px;
-      margin-bottom: 20px;
-    }
-
-    .row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    button {
-      border: none;
-      border-radius: 12px;
-      padding: 12px 16px;
-      min-height: 44px;
-      cursor: pointer;
-      color: white;
-      font-size: 15px;
-      font-weight: 600;
-      transition: 0.18s ease;
-    }
-
-    button:hover { transform: translateY(-1px); }
-
-    .btn-primary { background: var(--blue); }
-    .btn-primary:hover { background: var(--blueHover); }
-
-    .btn-secondary { background: var(--gray); }
-    .btn-secondary:hover { background: var(--grayHover); }
-
-    .btn-danger { background: var(--danger); }
-    .btn-danger:hover { background: var(--dangerHover); }
-
-    .btn-success { background: var(--green); }
-
-    .list-card, .group-card {
-      padding: 18px;
-      margin-bottom: 20px;
-    }
-
-    .list-title {
-      margin: 0 0 16px;
-      font-size: 20px;
-    }
-
-    .participant-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .participant {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 16px;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.025);
-      border: 1px solid rgba(94,122,176,0.18);
-    }
-
-    .participant.me {
-      border-color: rgba(59,130,246,0.7);
-      box-shadow: inset 0 0 0 1px rgba(59,130,246,0.18);
-    }
-
-    .participant-left {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      min-width: 0;
-    }
-
-    .index {
-      width: 34px;
-      height: 34px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(59,130,246,0.16);
-      color: #b8d2ff;
-      font-size: 14px;
-      font-weight: 800;
-      flex: 0 0 auto;
-    }
-
-    .name-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .name {
-      font-size: 18px;
-      font-weight: 700;
-      word-break: break-word;
-    }
-
-    .sub {
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    .participant-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .tiny {
-      min-height: 38px;
-      padding: 9px 12px;
-      font-size: 14px;
-      border-radius: 10px;
-    }
-
-    .empty {
-      padding: 22px;
-      color: var(--muted);
-      border: 1px dashed rgba(94,122,176,0.25);
-      border-radius: 16px;
-      background: rgba(255,255,255,0.02);
-    }
-
-    .hint {
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .footer {
-      margin-top: 48px;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.7;
-    }
-
-    @media (max-width: 760px) {
-      h1 { font-size: 34px; }
-      .participant {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      .participant-actions {
-        justify-content: flex-start;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="topbar">
-      <a class="back" href="index.html">← Back to all queues</a>
-    </div>
-
-    <div class="card head-card">
-      <h1 id="queueTitle">Queue</h1>
-      <div class="meta">
-        <div id="modeBadge" class="badge">Queue</div>
-        <div id="countBadge" class="badge">0 participants</div>
-        <div id="identityBadge" class="badge">Identity not set</div>
-      </div>
-    </div>
-
-    <div class="card actions-card">
-      <div id="actionRow" class="row"></div>
-      <div id="actionHint" class="hint"></div>
-    </div>
-
-    <div id="content"></div>
-
-    <div class="footer">
-      Made by oleksandr<br>
-      Made by ChatGPT<br>
-      contributors: susterok
-    </div>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getDatabase,
-      ref,
-      push,
-      onValue,
-      get,
-      remove,
-      update
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDfuH5iHjtiaB4bd5Z0YVzKFM0U4hQsO-w",
-      authDomain: "partisel.firebaseapp.com",
-      databaseURL: "https://partisel-default-rtdb.europe-west1.firebasedatabase.app/",
-      projectId: "partisel",
-      storageBucket: "partisel.firebasestorage.app",
-      messagingSenderId: "413106966990",
-      appId: "1:413106966990:web:5699fe9b8f34b802d29b9f"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    const queueId = new URLSearchParams(window.location.search).get("id");
-    const uid = localStorage.getItem("participants_uid") || crypto.randomUUID();
-    localStorage.setItem("participants_uid", uid);
-
-    let currentIdentity = null;
-    let latestQueue = null;
-
-    if (!queueId) {
-      alert("Queue id is missing");
-      window.location.href = "index.html";
-    }
-
-    function updateIdentityBadge() {
-      const badge = document.getElementById("identityBadge");
-      if (currentIdentity?.name) badge.textContent = "You: " + currentIdentity.name;
-      else badge.textContent = "Identity not set";
-    }
-
-    function askIdentity(titleName = "Enter your name", titlePin = "Enter your PIN") {
-      const rememberedName = currentIdentity?.name || "";
-      const name = prompt(titleName, rememberedName);
-      if (!name) return null;
-
-      const pin = prompt(titlePin);
-      if (!pin) return null;
-
-      const trimmedName = name.trim();
-      const trimmedPin = pin.trim();
-      if (!trimmedName || !trimmedPin) return null;
-
-      currentIdentity = { name: trimmedName, pin: trimmedPin };
-      updateIdentityBadge();
-      return currentIdentity;
-    }
-
-    async function findParticipantByIdentity(path, identity) {
-      const snapshot = await get(ref(db, path));
-      const data = snapshot.val();
-      if (!data) return null;
-
-      const items = Object.entries(data).sort((a, b) => {
-        const aTime = a[1].createdAt || 0;
-        const bTime = b[1].createdAt || 0;
-        return aTime - bTime;
-      });
-
-      for (const [key, value] of items) {
-        if (
-          value.name === identity.name &&
-          value.pin === identity.pin &&
-          value.uid === uid
-        ) {
-          return { key, value, items };
-        }
-      }
-      return null;
-    }
-
-    async function swapWithNeighbor(path, index, direction, identity) {
-      const snapshot = await get(ref(db, path));
-      const data = snapshot.val();
-      if (!data) {
-        alert("Nothing to move");
-        return;
-      }
-
-      const items = Object.entries(data).sort((a, b) => {
-        const aTime = a[1].createdAt || 0;
-        const bTime = b[1].createdAt || 0;
-        return aTime - bTime;
-      });
-
-      if (index < 0 || index >= items.length) return;
-
-      const nextIndex = index + direction;
-      if (nextIndex < 0 || nextIndex >= items.length) return;
-
-      const [myKey, myValue] = items[index];
-
-      if (
-        myValue.name !== identity.name ||
-        myValue.pin !== identity.pin ||
-        myValue.uid !== uid
-      ) {
-        alert("You can move only yourself");
-        return;
-      }
-
-      const [otherKey, otherValue] = items[nextIndex];
-
-      await update(ref(db, `${path}/${myKey}`), {
-        createdAt: otherValue.createdAt
-      });
-
-      await update(ref(db, `${path}/${otherKey}`), {
-        createdAt: myValue.createdAt
-      });
-    }
-
-    window.addSolo = async function () {
-      const identity = askIdentity();
-      if (!identity) return;
-
-      const existing = await findParticipantByIdentity(`queues/${queueId}/participants`, identity);
-      if (existing) {
-        alert("You are already in this queue");
-        return;
-      }
-
-      await push(ref(db, `queues/${queueId}/participants`), {
-        name: identity.name,
-        pin: identity.pin,
-        uid,
-        createdAt: Date.now()
-      });
-    };
-
-    window.removeSolo = async function () {
-      const identity = askIdentity();
-      if (!identity) return;
-
-      const existing = await findParticipantByIdentity(`queues/${queueId}/participants`, identity);
-      if (!existing) {
-        alert("You are not in this queue");
-        return;
-      }
-
-      await remove(ref(db, `queues/${queueId}/participants/${existing.key}`));
-    };
-
-    window.moveSolo = async function (index, direction) {
-      const identity = askIdentity("Confirm your name", "Confirm your PIN");
-      if (!identity) return;
-      await swapWithNeighbor(`queues/${queueId}/participants`, index, direction, identity);
-    };
-
-    window.createGroup = async function () {
-      const groupName = prompt("Group name");
-      if (!groupName) return;
-
-      const clean = groupName.trim();
-      if (!clean) return;
-
-      await update(ref(db, `queues/${queueId}/groups`), {
-        [clean]: true
-      });
-    };
-
-    window.joinGroup = async function (groupName) {
-      const identity = askIdentity();
-      if (!identity) return;
-
-      const existing = await findParticipantByIdentity(`queues/${queueId}/members/${groupName}`, identity);
-      if (existing) {
-        alert("You are already in this group");
-        return;
-      }
-
-      await push(ref(db, `queues/${queueId}/members/${groupName}`), {
-        name: identity.name,
-        pin: identity.pin,
-        uid,
-        createdAt: Date.now()
-      });
-    };
-
-    window.leaveGroup = async function (groupName) {
-      const identity = askIdentity();
-      if (!identity) return;
-
-      const existing = await findParticipantByIdentity(`queues/${queueId}/members/${groupName}`, identity);
-      if (!existing) {
-        alert("You are not in this group");
-        return;
-      }
-
-      await remove(ref(db, `queues/${queueId}/members/${groupName}/${existing.key}`));
-    };
-
-    window.moveGroup = async function (groupName, index, direction) {
-      const identity = askIdentity("Confirm your name", "Confirm your PIN");
-      if (!identity) return;
-      await swapWithNeighbor(`queues/${queueId}/members/${groupName}`, index, direction, identity);
-    };
-
-    window.copyQueueLink = async function () {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        alert("Link copied");
-      } catch {
-        alert("Could not copy link");
-      }
-    };
-
-    function renderActionButtons(queue) {
-      const actionRow = document.getElementById("actionRow");
-      const actionHint = document.getElementById("actionHint");
-
-      actionRow.innerHTML = "";
-      actionHint.textContent = "";
-
-      const copyBtn = document.createElement("button");
-      copyBtn.className = "btn-secondary";
-      copyBtn.textContent = "Copy link";
-      copyBtn.onclick = () => copyQueueLink();
-
-      actionRow.appendChild(copyBtn);
-
-      if (queue.mode === "solo") {
-        const addBtn = document.createElement("button");
-        addBtn.className = "btn-primary";
-        addBtn.textContent = "Add me";
-        addBtn.onclick = () => addSolo();
-
-        const removeBtn = document.createElement("button");
-        removeBtn.className = "btn-danger";
-        removeBtn.textContent = "Remove me";
-        removeBtn.onclick = () => removeSolo();
-
-        actionRow.appendChild(addBtn);
-        actionRow.appendChild(removeBtn);
-        actionHint.textContent = "Solo queue: you can add, remove, and move only yourself.";
-        return;
-      }
-
-      const createBtn = document.createElement("button");
-      createBtn.className = "btn-success";
-      createBtn.textContent = "Create group";
-      createBtn.onclick = () => createGroup();
-
-      actionRow.appendChild(createBtn);
-      actionHint.textContent = "Group queue: create groups, join one, and move only yourself inside it.";
-    }
-
-    function createParticipantRow(participant, index, onUp, onDown, amI) {
-      const row = document.createElement("div");
-      row.className = "participant" + (amI ? " me" : "");
-
-      const left = document.createElement("div");
-      left.className = "participant-left";
-
-      const indexBadge = document.createElement("div");
-      indexBadge.className = "index";
-      indexBadge.textContent = String(index + 1);
-
-      const wrap = document.createElement("div");
-      wrap.className = "name-wrap";
-
-      const name = document.createElement("div");
-      name.className = "name";
-      name.textContent = participant.name;
-
-      const sub = document.createElement("div");
-      sub.className = "sub";
-      sub.textContent = amI ? "This is you" : "Participant";
-
-      wrap.appendChild(name);
-      wrap.appendChild(sub);
-
-      left.appendChild(indexBadge);
-      left.appendChild(wrap);
-
-      const actions = document.createElement("div");
-      actions.className = "participant-actions";
-
-      const upBtn = document.createElement("button");
-      upBtn.className = "btn-secondary tiny";
-      upBtn.textContent = "↑";
-      upBtn.onclick = onUp;
-
-      const downBtn = document.createElement("button");
-      downBtn.className = "btn-secondary tiny";
-      downBtn.textContent = "↓";
-      downBtn.onclick = onDown;
-
-      actions.appendChild(upBtn);
-      actions.appendChild(downBtn);
-
-      row.appendChild(left);
-      row.appendChild(actions);
-
-      return row;
-    }
-
-    function renderSolo(queue) {
-      const content = document.getElementById("content");
-      content.innerHTML = "";
-
-      const card = document.createElement("div");
-      card.className = "card list-card";
-
-      const title = document.createElement("h2");
-      title.className = "list-title";
-      title.textContent = "Participants";
-
-      const list = document.createElement("div");
-      list.className = "participant-list";
-
-      const items = queue.participants
-        ? Object.entries(queue.participants).sort((a, b) => {
-            const aTime = a[1].createdAt || 0;
-            const bTime = b[1].createdAt || 0;
-            return aTime - bTime;
-          })
-        : [];
-
-      document.getElementById("countBadge").textContent =
-        items.length + " participant" + (items.length === 1 ? "" : "s");
-
-      if (items.length === 0) {
-        const empty = document.createElement("div");
-        empty.className = "empty";
-        empty.textContent = "No participants yet";
-        list.appendChild(empty);
-      } else {
-        items.forEach(([key, participant], index) => {
-          const amI = !!(
-            currentIdentity &&
-            participant.name === currentIdentity.name &&
-            participant.uid === uid
-          );
-
-          list.appendChild(
-            createParticipantRow(
-              participant,
-              index,
-              () => moveSolo(index, -1),
-              () => moveSolo(index, 1),
-              amI
-            )
-          );
-        });
-      }
-
-      card.appendChild(title);
-      card.appendChild(list);
-      content.appendChild(card);
-    }
-
-    function renderGroups(queue) {
-      const content = document.getElementById("content");
-      content.innerHTML = "";
-
-      const groups = queue.groups || {};
-      const members = queue.members || {};
-
-      let totalParticipants = 0;
-
-      const groupNames = Object.keys(groups).sort((a, b) => a.localeCompare(b));
-
-      if (groupNames.length === 0) {
-        document.getElementById("countBadge").textContent = "0 participants";
-
-        const emptyCard = document.createElement("div");
-        emptyCard.className = "card group-card";
-
-        const empty = document.createElement("div");
-        empty.className = "empty";
-        empty.textContent = "No groups yet";
-
-        emptyCard.appendChild(empty);
-        content.appendChild(emptyCard);
-        return;
-      }
-
-      for (const groupName of groupNames) {
-        const card = document.createElement("div");
-        card.className = "card group-card";
-
-        const title = document.createElement("h2");
-        title.className = "list-title";
-        title.textContent = groupName;
-
-        const row = document.createElement("div");
-        row.className = "row";
-
-        const joinBtn = document.createElement("button");
-        joinBtn.className = "btn-primary";
-        joinBtn.textContent = "Join";
-        joinBtn.onclick = () => joinGroup(groupName);
-
-        const leaveBtn = document.createElement("button");
-        leaveBtn.className = "btn-danger";
-        leaveBtn.textContent = "Leave";
-        leaveBtn.onclick = () => leaveGroup(groupName);
-
-        row.appendChild(joinBtn);
-        row.appendChild(leaveBtn);
-
-        const list = document.createElement("div");
-        list.className = "participant-list";
-        list.style.marginTop = "14px";
-
-        const items = members[groupName]
-          ? Object.entries(members[groupName]).sort((a, b) => {
-              const aTime = a[1].createdAt || 0;
-              const bTime = b[1].createdAt || 0;
-              return aTime - bTime;
-            })
-          : [];
-
-        totalParticipants += items.length;
-
-        if (items.length === 0) {
-          const empty = document.createElement("div");
-          empty.className = "empty";
-          empty.textContent = "No participants yet";
-          list.appendChild(empty);
-        } else {
-          items.forEach(([key, participant], index) => {
-            const amI = !!(
-              currentIdentity &&
-              participant.name === currentIdentity.name &&
-              participant.uid === uid
-            );
-
-            list.appendChild(
-              createParticipantRow(
-                participant,
-                index,
-                () => moveGroup(groupName, index, -1),
-                () => moveGroup(groupName, index, 1),
-                amI
-              )
-            );
-          });
-        }
-
-        card.appendChild(title);
-        card.appendChild(row);
-        card.appendChild(list);
-        content.appendChild(card);
-      }
-
-      document.getElementById("countBadge").textContent =
-        totalParticipants + " participant" + (totalParticipants === 1 ? "" : "s");
-    }
-
-    onValue(ref(db, `queues/${queueId}`), (snapshot) => {
-      const queue = snapshot.val();
-      if (!queue) {
-        alert("Queue not found");
-        window.location.href = "index.html";
-        return;
-      }
-
-      latestQueue = queue;
-      updateIdentityBadge();
-
-      document.getElementById("queueTitle").textContent = queue.name;
-      document.getElementById("modeBadge").textContent =
-        queue.mode === "solo" ? "Solo queue" : "Group queue";
-
-      renderActionButtons(queue);
-
-      if (queue.mode === "solo") renderSolo(queue);
-      else renderGroups(queue);
-    });
-  </script>
 </body>
 </html>
