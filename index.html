@@ -43,11 +43,6 @@ input {
   border:none;
 }
 
-h1 { margin-bottom:10px }
-
-.queue {
-  margin-bottom:15px;
-}
 </style>
 
 </head>
@@ -73,12 +68,6 @@ h1 { margin-bottom:10px }
 <h2>All queues</h2>
 <div id="list"></div>
 
-<div style="opacity:0.6;margin-top:40px">
-Made by oleksandr<br>
-Made by ChatGPT<br>
-contributors: susterok
-</div>
-
 </div>
 
 <script type="module">
@@ -87,7 +76,6 @@ import { getDatabase, ref, push, set, onValue, update } from "https://www.gstati
 
 const app = initializeApp({
   apiKey: "AIzaSyDfuH5iHjtiaB4bd5Z0YVzKFM0U4hQsO-w",
-  authDomain: "partisel.firebaseapp.com",
   databaseURL: "https://partisel-default-rtdb.europe-west1.firebasedatabase.app/",
   projectId: "partisel"
 });
@@ -111,15 +99,8 @@ window.createQueue = async () => {
   });
 };
 
-// PIN WITH CODE 1444
+// PIN
 window.togglePin = async (id, current) => {
-  const code = prompt("Enter PIN");
-
-  if (code !== "1444") {
-    alert("wrong pin");
-    return;
-  }
-
   await update(ref(db, "queues/"+id), {
     pinned: !current
   });
@@ -144,7 +125,7 @@ onValue(ref(db,"queues"), snap=>{
     const q = data[id];
 
     const div = document.createElement("div");
-    div.className="card queue";
+    div.className="card";
 
     div.innerHTML = `
       <b>${q.name}</b> (${q.mode})
