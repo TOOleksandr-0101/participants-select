@@ -7,131 +7,39 @@
 
 <style>
 body {
-  margin:0;
-  font-family: system-ui;
-  background:
-    radial-gradient(circle at top left, rgba(59,130,246,0.25), transparent),
-    #060c18;
+  background:#0b1220;
   color:white;
-}
-
-.container {
-  max-width:900px;
-  margin:auto;
-  padding:30px;
+  font-family:sans-serif;
+  padding:20px;
 }
 
 .card {
-  background: rgba(17,24,39,0.8);
-  border:1px solid rgba(255,255,255,0.06);
-  border-radius:20px;
-  padding:20px;
-  margin-bottom:20px;
-  backdrop-filter: blur(12px);
+  background:#111827;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:15px;
 }
 
-h1 {
-  font-size:48px;
-  margin:0 0 10px;
-}
-
-.badge {
-  background:rgba(255,255,255,0.06);
-  padding:6px 10px;
-  border-radius:999px;
-  font-size:13px;
-  margin-right:6px;
-}
-
-button {
-  border:none;
-  border-radius:12px;
-  padding:10px 14px;
-  margin:4px;
-  cursor:pointer;
-  font-weight:600;
-  color:white;
-}
-
-.blue { background:#3b82f6 }
-.red { background:#ef4444 }
-.green { background:#22c55e }
-.gray { background:#374151 }
-
-.user {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:14px;
-  margin-top:10px;
-  border-radius:14px;
-  background:rgba(255,255,255,0.03);
-  border:1px solid rgba(255,255,255,0.06);
-}
-
-.user.me {
-  border:1px solid #3b82f6;
-}
-
-.left {
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-
-.num {
-  width:34px;
-  height:34px;
-  border-radius:999px;
-  background:rgba(59,130,246,0.2);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:bold;
-}
-
-.footer {
-  margin-top:40px;
-  opacity:0.6;
-}
+button { margin:4px; padding:6px 10px }
 </style>
 
 </head>
 
 <body>
 
-<div class="container">
+<a href="index.html">← Back</a>
 
-<a href="index.html">← Back to all queues</a>
-
-<div class="card">
-  <h1 id="title"></h1>
-  <div id="badges"></div>
-</div>
-
-<div class="card">
-  <button class="gray" onclick="login()">Login</button>
-  <button class="gray" onclick="logout()">Logout</button>
-  <button class="gray" onclick="copyLink()">Copy link</button>
-</div>
+<h1 id="title"></h1>
 
 <div id="controls"></div>
 <div id="content"></div>
-
-<div class="footer">
-  Made by oleksandr<br>
-  Made by ChatGPT<br>
-  contributors: susterok
-</div>
-
-</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, push, onValue, get, remove, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const app = initializeApp({
-  apiKey: "AIzaSy...",
+  apiKey: "AIzaSyDfuH5iHjtiaB4bd5Z0YVzKFM0U4hQsO-w",
   databaseURL: "https://partisel-default-rtdb.europe-west1.firebasedatabase.app/",
   projectId: "partisel"
 });
@@ -140,128 +48,98 @@ const db = getDatabase(app);
 
 const id = new URLSearchParams(location.search).get("id");
 
-const uid = localStorage.getItem("uid") || crypto.randomUUID();
-localStorage.setItem("uid", uid);
-
-let identity = JSON.parse(localStorage.getItem("identity") || "null");
-
-// LOGIN
-window.login = () => {
-  const name = prompt("Name");
-  const pin = prompt("PIN");
-  if (!name || !pin) return;
-
-  identity = {name, pin};
-  localStorage.setItem("identity", JSON.stringify(identity));
-};
-
-// LOGOUT
-window.logout = () => {
-  identity = null;
-  localStorage.removeItem("identity");
-};
-
-window.copyLink = () => {
-  navigator.clipboard.writeText(location.href);
-};
-
 // MOVE
 async function move(path, index, dir) {
-  if (!identity) return alert("login");
-
   const snap = await get(ref(db, path));
   const data = snap.val();
+  if (!data) return;
 
   const items = Object.entries(data).sort((a,b)=>a[1].createdAt-b[1].createdAt);
 
-  const next = index+dir;
-  if (next<0 || next>=items.length) return;
+  const next = index + dir;
+  if (next < 0 || next >= items.length) return;
 
-  const [k1,v1]=items[index];
-  const [k2,v2]=items[next];
-
-  if (v1.uid!==uid) return alert("only yourself");
+  const [k1,v1] = items[index];
+  const [k2,v2] = items[next];
 
   await update(ref(db, path+"/"+k1), {createdAt:v2.createdAt});
   await update(ref(db, path+"/"+k2), {createdAt:v1.createdAt});
 }
 
-// ADD
-window.add = async ()=>{
-  if (!identity) return alert("login");
+// SOLO
+window.addSolo = async () => {
+  const name = prompt("Name");
+  if (!name) return;
 
   await push(ref(db, `queues/${id}/participants`), {
-    ...identity,
-    uid,
+    name,
     createdAt: Date.now()
   });
 };
 
-// DELETE
-window.del = async ()=>{
+window.removeSolo = async () => {
+  const name = prompt("Name");
+
   const snap = await get(ref(db, `queues/${id}/participants`));
   const data = snap.val();
 
   for (const k in data) {
-    if (data[k].uid===uid) {
+    if (data[k].name === name) {
       await remove(ref(db, `queues/${id}/participants/${k}`));
     }
   }
 };
 
 // GROUP
-window.createGroup = async ()=>{
+window.createGroup = async () => {
   const name = prompt("Group name");
   if (!name) return;
 
-  await update(ref(db, `queues/${id}/groups`), {[name]:true});
+  await update(ref(db, `queues/${id}/groups`), {
+    [name]: true
+  });
 };
 
-window.join = async g=>{
-  if (!identity) return;
+window.joinGroup = async (group) => {
+  const name = prompt("Name");
+  if (!name) return;
 
-  await push(ref(db, `queues/${id}/members/${g}`), {
-    ...identity,
-    uid,
+  await push(ref(db, `queues/${id}/members/${group}`), {
+    name,
     createdAt: Date.now()
   });
 };
 
-window.leave = async g=>{
-  const snap = await get(ref(db, `queues/${id}/members/${g}`));
+window.leaveGroup = async (group) => {
+  const name = prompt("Name");
+
+  const snap = await get(ref(db, `queues/${id}/members/${group}`));
   const data = snap.val();
 
   for (const k in data) {
-    if (data[k].uid===uid) {
-      await remove(ref(db, `queues/${id}/members/${g}/${k}`));
+    if (data[k].name === name) {
+      await remove(ref(db, `queues/${id}/members/${group}/${k}`));
     }
   }
 };
 
 // RENDER
-onValue(ref(db, `queues/${id}`), snap=>{
+onValue(ref(db, `queues/${id}`), snap => {
   const q = snap.val();
   if (!q) return;
 
-  document.getElementById("title").innerText = q.name;
-
-  document.getElementById("badges").innerHTML = `
-    <span class="badge">${q.mode}</span>
-    <span class="badge">${identity ? identity.name : "not logged"}</span>
-  `;
+  document.getElementById("title").textContent = q.name;
 
   const controls = document.getElementById("controls");
   const content = document.getElementById("content");
 
-  controls.innerHTML="";
-  content.innerHTML="";
+  controls.innerHTML = "";
+  content.innerHTML = "";
 
-  if (q.mode==="solo") {
-    controls.innerHTML=`
-      <div class="card">
-        <button class="blue" onclick="add()">Add me</button>
-        <button class="red" onclick="del()">Delete</button>
-      </div>
+  if (q.mode === "solo") {
+    controls.innerHTML = `
+      <button onclick="addSolo()">Add</button>
+      <button onclick="removeSolo()">Remove</button>
     `;
 
     const items = q.participants
@@ -270,19 +148,13 @@ onValue(ref(db, `queues/${id}`), snap=>{
 
     items.forEach(([k,p],i)=>{
       const div = document.createElement("div");
-      div.className="user";
+      div.className="card";
 
-      if (p.uid===uid) div.classList.add("me");
-
-      div.innerHTML=`
-        <div class="left">
-          <div class="num">${i+1}</div>
-          <div>${p.name}</div>
-        </div>
-        <div>
-          <button class="gray" onclick="move('queues/${id}/participants',${i},-1)">↑</button>
-          <button class="gray" onclick="move('queues/${id}/participants',${i},1)">↓</button>
-        </div>
+      div.innerHTML = `
+        ${i+1}. ${p.name}
+        <br>
+        <button onclick="move('queues/${id}/participants',${i},-1)">↑</button>
+        <button onclick="move('queues/${id}/participants',${i},1)">↓</button>
       `;
 
       content.appendChild(div);
@@ -290,33 +162,27 @@ onValue(ref(db, `queues/${id}`), snap=>{
   }
 
   else {
-    controls.innerHTML=`
-      <div class="card">
-        <button class="green" onclick="createGroup()">Create group</button>
-      </div>
-    `;
+    controls.innerHTML = `<button onclick="createGroup()">Create group</button>`;
 
     const groups = q.groups || {};
     const members = q.members || {};
 
     for (const g in groups) {
-      const card = document.createElement("div");
-      card.className="card";
+      const div = document.createElement("div");
+      div.className="card";
 
-      card.innerHTML=`<h3>${g}</h3>`;
+      div.innerHTML = `<h3>${g}</h3>`;
 
-      const joinBtn = document.createElement("button");
-      joinBtn.className="blue";
-      joinBtn.innerText="Join";
-      joinBtn.onclick=()=>join(g);
+      const join = document.createElement("button");
+      join.innerText="Join";
+      join.onclick=()=>joinGroup(g);
 
-      const leaveBtn = document.createElement("button");
-      leaveBtn.className="red";
-      leaveBtn.innerText="Leave";
-      leaveBtn.onclick=()=>leave(g);
+      const leave = document.createElement("button");
+      leave.innerText="Leave";
+      leave.onclick=()=>leaveGroup(g);
 
-      card.appendChild(joinBtn);
-      card.appendChild(leaveBtn);
+      div.appendChild(join);
+      div.appendChild(leave);
 
       const items = members[g]
         ? Object.entries(members[g]).sort((a,b)=>a[1].createdAt-b[1].createdAt)
@@ -324,25 +190,17 @@ onValue(ref(db, `queues/${id}`), snap=>{
 
       items.forEach(([k,p],i)=>{
         const user = document.createElement("div");
-        user.className="user";
 
-        if (p.uid===uid) user.classList.add("me");
-
-        user.innerHTML=`
-          <div class="left">
-            <div class="num">${i+1}</div>
-            <div>${p.name}</div>
-          </div>
-          <div>
-            <button class="gray" onclick="move('queues/${id}/members/${g}',${i},-1)">↑</button>
-            <button class="gray" onclick="move('queues/${id}/members/${g}',${i},1)">↓</button>
-          </div>
+        user.innerHTML = `
+          ${i+1}. ${p.name}
+          <button onclick="move('queues/${id}/members/${g}',${i},-1)">↑</button>
+          <button onclick="move('queues/${id}/members/${g}',${i},1)">↓</button>
         `;
 
-        card.appendChild(user);
+        div.appendChild(user);
       });
 
-      content.appendChild(card);
+      content.appendChild(div);
     }
   }
 });
