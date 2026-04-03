@@ -10,7 +10,7 @@ body {
   margin:0;
   font-family: system-ui;
   background:
-    radial-gradient(circle at top left, rgba(59,130,246,0.2), transparent),
+    radial-gradient(circle at top left, rgba(59,130,246,0.25), transparent),
     #060c18;
   color:white;
 }
@@ -22,54 +22,50 @@ body {
 }
 
 .card {
-  background: rgba(17,24,39,0.9);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:16px;
+  background: rgba(17,24,39,0.8);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:20px;
   padding:20px;
   margin-bottom:20px;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
 }
 
 h1 {
+  font-size:48px;
   margin:0 0 10px;
-  font-size:42px;
 }
 
 .badge {
-  display:inline-block;
+  background:rgba(255,255,255,0.06);
   padding:6px 10px;
   border-radius:999px;
-  background:rgba(255,255,255,0.05);
-  margin-right:6px;
   font-size:13px;
+  margin-right:6px;
 }
 
 button {
   border:none;
-  border-radius:10px;
+  border-radius:12px;
   padding:10px 14px;
+  margin:4px;
   cursor:pointer;
-  color:white;
   font-weight:600;
+  color:white;
 }
 
 .blue { background:#3b82f6 }
-.green { background:#22c55e }
 .red { background:#ef4444 }
+.green { background:#22c55e }
 .gray { background:#374151 }
-
-.group {
-  margin-top:15px;
-}
 
 .user {
   display:flex;
   justify-content:space-between;
   align-items:center;
   padding:14px;
-  border-radius:12px;
-  margin:8px 0;
-  background: rgba(255,255,255,0.03);
+  margin-top:10px;
+  border-radius:14px;
+  background:rgba(255,255,255,0.03);
   border:1px solid rgba(255,255,255,0.06);
 }
 
@@ -77,15 +73,15 @@ button {
   border:1px solid #3b82f6;
 }
 
-.user-left {
+.left {
   display:flex;
-  gap:12px;
   align-items:center;
+  gap:12px;
 }
 
 .num {
-  width:30px;
-  height:30px;
+  width:34px;
+  height:34px;
   border-radius:999px;
   background:rgba(59,130,246,0.2);
   display:flex;
@@ -95,8 +91,8 @@ button {
 }
 
 .footer {
-  opacity:0.6;
   margin-top:40px;
+  opacity:0.6;
 }
 </style>
 
@@ -106,17 +102,17 @@ button {
 
 <div class="container">
 
-<a href="index.html">← Back</a>
+<a href="index.html">← Back to all queues</a>
 
 <div class="card">
   <h1 id="title"></h1>
-  <div id="meta"></div>
+  <div id="badges"></div>
 </div>
 
 <div class="card">
   <button class="gray" onclick="login()">Login</button>
   <button class="gray" onclick="logout()">Logout</button>
-  <button class="blue" onclick="copyLink()">Copy link</button>
+  <button class="gray" onclick="copyLink()">Copy link</button>
 </div>
 
 <div id="controls"></div>
@@ -135,8 +131,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getDatabase, ref, push, onValue, get, remove, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const app = initializeApp({
-  apiKey: "AIzaSyDfuH5iHjtiaB4bd5Z0YVzKFM0U4hQsO-w",
-  authDomain: "partisel.firebaseapp.com",
+  apiKey: "AIzaSy...",
   databaseURL: "https://partisel-default-rtdb.europe-west1.firebasedatabase.app/",
   projectId: "partisel"
 });
@@ -166,10 +161,8 @@ window.logout = () => {
   localStorage.removeItem("identity");
 };
 
-// COPY LINK
 window.copyLink = () => {
   navigator.clipboard.writeText(location.href);
-  alert("copied");
 };
 
 // MOVE
@@ -178,27 +171,23 @@ async function move(path, index, dir) {
 
   const snap = await get(ref(db, path));
   const data = snap.val();
-  if (!data) return;
 
   const items = Object.entries(data).sort((a,b)=>a[1].createdAt-b[1].createdAt);
 
-  const next = index + dir;
+  const next = index+dir;
   if (next<0 || next>=items.length) return;
 
-  const [k1,v1] = items[index];
-  const [k2,v2] = items[next];
+  const [k1,v1]=items[index];
+  const [k2,v2]=items[next];
 
-  if (v1.name!==identity.name || v1.pin!==identity.pin || v1.uid!==uid) {
-    alert("only yourself");
-    return;
-  }
+  if (v1.uid!==uid) return alert("only yourself");
 
   await update(ref(db, path+"/"+k1), {createdAt:v2.createdAt});
   await update(ref(db, path+"/"+k2), {createdAt:v1.createdAt});
 }
 
-// ADD SOLO
-window.add = async () => {
+// ADD
+window.add = async ()=>{
   if (!identity) return alert("login");
 
   await push(ref(db, `queues/${id}/participants`), {
@@ -209,29 +198,26 @@ window.add = async () => {
 };
 
 // DELETE
-window.del = async () => {
-  if (!identity) return;
-
+window.del = async ()=>{
   const snap = await get(ref(db, `queues/${id}/participants`));
   const data = snap.val();
 
   for (const k in data) {
-    const p = data[k];
-    if (p.name===identity.name && p.pin===identity.pin && p.uid===uid) {
+    if (data[k].uid===uid) {
       await remove(ref(db, `queues/${id}/participants/${k}`));
     }
   }
 };
 
 // GROUP
-window.createGroup = async () => {
+window.createGroup = async ()=>{
   const name = prompt("Group name");
   if (!name) return;
 
   await update(ref(db, `queues/${id}/groups`), {[name]:true});
 };
 
-window.join = async g => {
+window.join = async g=>{
   if (!identity) return;
 
   await push(ref(db, `queues/${id}/members/${g}`), {
@@ -241,13 +227,12 @@ window.join = async g => {
   });
 };
 
-window.leave = async g => {
+window.leave = async g=>{
   const snap = await get(ref(db, `queues/${id}/members/${g}`));
   const data = snap.val();
 
   for (const k in data) {
-    const p = data[k];
-    if (p.name===identity.name && p.pin===identity.pin && p.uid===uid) {
+    if (data[k].uid===uid) {
       await remove(ref(db, `queues/${id}/members/${g}/${k}`));
     }
   }
@@ -260,8 +245,9 @@ onValue(ref(db, `queues/${id}`), snap=>{
 
   document.getElementById("title").innerText = q.name;
 
-  document.getElementById("meta").innerHTML = `
+  document.getElementById("badges").innerHTML = `
     <span class="badge">${q.mode}</span>
+    <span class="badge">${identity ? identity.name : "not logged"}</span>
   `;
 
   const controls = document.getElementById("controls");
@@ -270,7 +256,6 @@ onValue(ref(db, `queues/${id}`), snap=>{
   controls.innerHTML="";
   content.innerHTML="";
 
-  // SOLO
   if (q.mode==="solo") {
     controls.innerHTML=`
       <div class="card">
@@ -287,10 +272,10 @@ onValue(ref(db, `queues/${id}`), snap=>{
       const div = document.createElement("div");
       div.className="user";
 
-      if (identity && p.name===identity.name) div.classList.add("me");
+      if (p.uid===uid) div.classList.add("me");
 
       div.innerHTML=`
-        <div class="user-left">
+        <div class="left">
           <div class="num">${i+1}</div>
           <div>${p.name}</div>
         </div>
@@ -304,7 +289,6 @@ onValue(ref(db, `queues/${id}`), snap=>{
     });
   }
 
-  // GROUP
   else {
     controls.innerHTML=`
       <div class="card">
@@ -319,7 +303,7 @@ onValue(ref(db, `queues/${id}`), snap=>{
       const card = document.createElement("div");
       card.className="card";
 
-      card.innerHTML = `<h3>${g}</h3>`;
+      card.innerHTML=`<h3>${g}</h3>`;
 
       const joinBtn = document.createElement("button");
       joinBtn.className="blue";
@@ -342,10 +326,10 @@ onValue(ref(db, `queues/${id}`), snap=>{
         const user = document.createElement("div");
         user.className="user";
 
-        if (identity && p.name===identity.name) user.classList.add("me");
+        if (p.uid===uid) user.classList.add("me");
 
         user.innerHTML=`
-          <div class="user-left">
+          <div class="left">
             <div class="num">${i+1}</div>
             <div>${p.name}</div>
           </div>
