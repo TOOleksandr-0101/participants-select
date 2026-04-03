@@ -1,300 +1,39 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Queue</title>
-
-<style>
-body {
-  font-family: system-ui;
-  background:#0b1220;
-  color:white;
-  margin:0;
-  padding:20px;
-}
-
-.container {
-  max-width:900px;
-  margin:auto;
-}
-
-.card {
-  background:#111827;
-  padding:20px;
-  border-radius:14px;
-  margin-bottom:20px;
-}
-
-.user {
-  display:flex;
-  justify-content:space-between;
-  padding:10px;
-  margin:5px 0;
-  background:#020617;
-  border-radius:8px;
-}
-
-.me {
-  border:1px solid #2563eb;
-}
-
-button {
-  padding:6px 10px;
-  margin:3px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  background:#2563eb;
-  color:white;
-}
-
-.red { background:#dc2626 }
-
-</style>
-
-</head>
-
-<body>
-
-<div class="container">
-
-<a href="index.html">← Back</a>
-
-<h1 id="title"></h1>
-
-<div class="card">
-  <button onclick="login()">Login</button>
-  <button onclick="logout()">Logout</button>
-</div>
-
-<div class="card" id="controls"></div>
-<div id="content"></div>
-
-<div style="opacity:0.6;margin-top:40px">
-Made by oleksandr<br>
-Made by ChatGPT<br>
-contributors: susterok
-</div>
-
-</div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, push, onValue, get, remove, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-const app = initializeApp({
-  apiKey: "AIzaSyDfuH5iHjtiaB4bd5Z0YVzKFM0U4hQsO-w",
-  authDomain: "partisel.firebaseapp.com",
-  databaseURL: "https://partisel-default-rtdb.europe-west1.firebasedatabase.app/",
-  projectId: "partisel"
-});
-
-const db = getDatabase(app);
-
-const id = new URLSearchParams(location.search).get("id");
-
-const uid = localStorage.getItem("uid") || crypto.randomUUID();
-localStorage.setItem("uid", uid);
-
-let identity = JSON.parse(localStorage.getItem("identity") || "null");
-
-// LOGIN
-window.login = () => {
-  const name = prompt("Name");
-  const pin = prompt("PIN");
-
-  if (!name || !pin) return;
-
-  identity = {name, pin};
-  localStorage.setItem("identity", JSON.stringify(identity));
-};
-
-// LOGOUT
-window.logout = () => {
-  identity = null;
-  localStorage.removeItem("identity");
-};
-
-// MOVE
-async function move(path, index, dir) {
-  if (!identity) return alert("login first");
-
-  const snap = await get(ref(db, path));
-  const data = snap.val();
-  if (!data) return;
-
-  const items = Object.entries(data).sort((a,b)=>a[1].createdAt-b[1].createdAt);
-
-  const next = index + dir;
-  if (next<0 || next>=items.length) return;
-
-  const [k1,v1] = items[index];
-  const [k2,v2] = items[next];
-
-  if (v1.name!==identity.name || v1.pin!==identity.pin || v1.uid!==uid) {
-    alert("you can move only yourself");
-    return;
-  }
-
-  await update(ref(db, path+"/"+k1), {createdAt:v2.createdAt});
-  await update(ref(db, path+"/"+k2), {createdAt:v1.createdAt});
-}
-
-// ADD
-window.add = async () => {
-  if (!identity) return alert("login first");
-
-  await push(ref(db, `queues/${id}/participants`), {
-    ...identity,
-    uid,
-    createdAt: Date.now()
-  });
-};
-
-// DELETE
-window.del = async () => {
-  if (!identity) return alert("login first");
-
-  const snap = await get(ref(db, `queues/${id}/participants`));
-  const data = snap.val();
-  if (!data) return;
-
-  for (const k in data) {
-    const p = data[k];
-
-    if (p.name===identity.name && p.pin===identity.pin && p.uid===uid) {
-      await remove(ref(db, `queues/${id}/participants/${k}`));
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Queue</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --card: rgba(13, 23, 40, 0.94);
+      --border: rgba(80, 112, 168, 0.22);
+      --text: #e8eefc;
+      --muted: #91a0bf;
+      --blue: #3b82f6;
+      --blueHover: #2563eb;
+      --gray: #334155;
+      --grayHover: #475569;
+      --danger: #ef4444;
+      --dangerHover: #dc2626;
+      --green: #22c55e;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.34);
+      --radius: 18px;
     }
-  }
-};
 
-// GROUP
-window.createGroup = async () => {
-  const name = prompt("group name");
-  if (!name) return;
+    * { box-sizing: border-box; }
 
-  await update(ref(db, `queues/${id}/groups`), {[name]:true});
-};
-
-window.join = async (g) => {
-  if (!identity) return alert("login");
-
-  await push(ref(db, `queues/${id}/members/${g}`), {
-    ...identity,
-    uid,
-    createdAt: Date.now()
-  });
-};
-
-window.leave = async (g) => {
-  const snap = await get(ref(db, `queues/${id}/members/${g}`));
-  const data = snap.val();
-  if (!data) return;
-
-  for (const k in data) {
-    const p = data[k];
-    if (p.name===identity.name && p.pin===identity.pin && p.uid===uid) {
-      await remove(ref(db, `queues/${id}/members/${g}/${k}`));
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 35%),
+        linear-gradient(180deg, #06101d 0%, #081120 100%);
+      min-height: 100vh;
     }
-  }
-};
 
-// RENDER
-onValue(ref(db, `queues/${id}`), snap=>{
-  const q = snap.val();
-  if (!q) return;
-
-  document.getElementById("title").innerText = q.name;
-
-  const controls = document.getElementById("controls");
-  const content = document.getElementById("content");
-
-  controls.innerHTML="";
-  content.innerHTML="";
-
-  // SOLO
-  if (q.mode==="solo") {
-    controls.innerHTML=`
-      <button onclick="add()">Add me</button>
-      <button class="red" onclick="del()">Delete me</button>
-    `;
-
-    const items = q.participants
-      ? Object.entries(q.participants).sort((a,b)=>a[1].createdAt-b[1].createdAt)
-      : [];
-
-    items.forEach(([k,p],i)=>{
-      const div = document.createElement("div");
-      div.className="user";
-
-      if (identity && p.name===identity.name) div.classList.add("me");
-
-      div.innerHTML=`
-        <div>#${i+1} ${p.name}</div>
-        <div>
-          <button onclick="move('queues/${id}/participants',${i},-1)">↑</button>
-          <button onclick="move('queues/${id}/participants',${i},1)">↓</button>
-        </div>
-      `;
-
-      content.appendChild(div);
-    });
-  }
-
-  // GROUP
-  else {
-    controls.innerHTML=`<button onclick="createGroup()">Create group</button>`;
-
-    const groups = q.groups || {};
-    const members = q.members || {};
-
-    for (const g in groups) {
-      const div = document.createElement("div");
-      div.className="card";
-
-      div.innerHTML=`<h3>${g}</h3>`;
-
-      const joinBtn = document.createElement("button");
-      joinBtn.innerText="Join";
-      joinBtn.onclick=()=>join(g);
-
-      const leaveBtn = document.createElement("button");
-      leaveBtn.innerText="Leave";
-      leaveBtn.onclick=()=>leave(g);
-
-      div.appendChild(joinBtn);
-      div.appendChild(leaveBtn);
-
-      const items = members[g]
-        ? Object.entries(members[g]).sort((a,b)=>a[1].createdAt-b[1].createdAt)
-        : [];
-
-      items.forEach(([k,p],i)=>{
-        const user = document.createElement("div");
-        user.className="user";
-
-        if (identity && p.name===identity.name) user.classList.add("me");
-
-        user.innerHTML=`
-          <div>#${i+1} ${p.name}</div>
-          <div>
-            <button onclick="move('queues/${id}/members/${g}',${i},-1)">↑</button>
-            <button onclick="move('queues/${id}/members/${g}',${i},1)">↓</button>
-          </div>
-        `;
-
-        div.appendChild(user);
-      });
-
-      content.appendChild(div);
-    }
-  }
-});
-</script>
-
-</body>
-</html>
     .wrap {
       max-width: 1100px;
       margin: 0 auto;
