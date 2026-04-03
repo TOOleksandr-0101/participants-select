@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ParticipantsSelect</title>
+  <style>
+    body {
+      font-family: Arial;
+      max-width: 900px;
+      margin: auto;
+      padding: 20px;
+      background: #f4f6fb;
+    }
+
+```
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+input {
+  padding: 10px;
+  margin: 5px;
+}
+
+button {
+  padding: 10px;
+  margin: 5px;
+  cursor: pointer;
+}
+```
+
+  </style>
+</head>
+
+<body>
+
+<h1>ParticipantsSelect</h1>
+
+<div class="card">
+  <h2>Your name</h2>
+  <input id="nameInput" placeholder="Enter name">
+</div>
+
+<div class="card">
+  <h2>Queue</h2>
+  <button onclick="createQueue()">Create new queue</button>
+  <button onclick="joinQueue()">Join queue</button>
+  <button onclick="leaveQueue()">Leave queue</button>
+  <ol id="queueList"></ol>
+</div>
+
+<div class="card">
+  <h2>Create Team</h2>
+  <input id="teamNameInput" placeholder="Team name">
+  <button onclick="createTeam()">Create team</button>
+</div>
+
+<div class="card">
+  <h2>Teams</h2>
+  <div id="teamsContainer"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getDatabase,
+  ref,
+  push,
+  onValue,
+  remove,
+  get,
+  set
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyDfuH5iHjtiaB4bd5Z0YVzKFM0U4hQsO-w",
+  authDomain: "partisel.firebaseapp.com",
+  databaseURL: "https://partisel-default-rtdb.europe-west1.firebasedatabase.app/",
+  projectId: "partisel",
+  storageBucket: "partisel.firebasestorage.app",
+  messagingSenderId: "413106966990",
+  appId: "1:413106966990:web:5699fe9b8f34b802d29b9f"
+});
+
+const db = getDatabase(app);
+
+function getName() {
+  const name = document.getElementById("nameInput").value.trim();
+  if (!name) {
+    alert("Enter name");
+    return null;
+  }
+  return name;
+}
+
+// ===== QUEUE =====
+
+function canCreateQueue() {
+  const last = localStorage.getItem("lastQueue");
+  if (!last) return true;
+  return Date.now() - Number(last) > 12 * 60 * 60 * 1000;
+}
+
+window.createQueue = async function () {
+  if (!canCreateQueue()) {
+    alert("Only once every 12 hours");
+    return;
+  }
+
+  await set(ref(db, "queue"), null);
+  localStorage.setItem("lastQueue", Date.now());
+};
+
+window.joinQueue = async function () {
+  const name = getName();
+  if (!name) return;
+
+  await push(ref(db, "queue"), { name });
+};
+
+window.leaveQueue = async function () {
+  const name = getName();
+  if (!name) return;
+
+  const snap = await get(ref(db, "queue"));
+  const data = snap.val();
+  if (!data) return;
+
+  for (const key in data) {
+    if (data[key].name === name) {
+      await remove(ref(db, "queue/" + key));
+    }
+  }
+};
+
+// ===== TEAMS =====
+
+window.createTeam = async function () {
+  const teamName = document.getElementById("teamNameInput").value.trim();
+  if (!teamName) {
+    alert("Enter team name");
+    return;
+  }
+
+  await set(ref(db, "teams/" + teamName), {});
+};
+
+window.joinTeam = async function (team) {
+  const name = getName();
+  if (!name) return;
+
+  await push(ref(db, "teams/" + team), { name });
+};
+
+window.leaveTeam = async function (team) {
+  const name = getName();
+  if (!name) return;
+
+  const snap = await get(ref(db, "teams/" + team));
+  const data = snap.val();
+  if (!data) return;
+
+  for (const key in data) {
+    if (data[key].name === name) {
+      await remove(ref(db, "teams/" + team + "/" + key));
+    }
+  }
+};
+
+// ===== RENDER =====
+
+onValue(ref(db, "queue"), snap => {
+  const el = document.getElementById("queueList");
+  el.innerHTML = "";
+
+  const data = snap.val();
+  if (!data) return;
+
+  Object.values(data).forEach(i => {
+    const li = document.createElement("li");
+    li.textContent = i.name;
+    el.appendChild(li);
+  });
+});
+
+onValue(ref(db, "teams"), snap => {
+  const container = document.getElementById("teamsContainer");
+  container.innerHTML = "";
+
+  const teams = snap.val();
+  if (!teams) return;
+
+  Object.keys(teams).forEach(teamName => {
+    const teamDiv = document.createElement("div");
+
+    const title = document.createElement("h3");
+    title.textContent = teamName;
+
+    const joinBtn = document.createElement("button");
+    joinBtn.textContent = "Join";
+    joinBtn.onclick = () => joinTeam(teamName);
+
+    const leaveBtn = document.createElement("button");
+    leaveBtn.textContent = "Leave";
+    leaveBtn.onclick = () => leaveTeam(teamName);
+
+    const ul = document.createElement("ul");
+
+    const members = teams[teamName];
+    if (members) {
+      Object.values(members).forEach(m => {
+        const li = document.createElement("li");
+        li.textContent = m.name;
+        ul.appendChild(li);
+      });
+    }
+
+    teamDiv.appendChild(title);
+    teamDiv.appendChild(joinBtn);
+    teamDiv.appendChild(leaveBtn);
+    teamDiv.appendChild(ul);
+
+    container.appendChild(teamDiv);
+  });
+});
+</script>
+
+</body>
+</html>
